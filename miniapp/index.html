@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <!--
+      ⚠️ `maximum-scale`/`user-scalable=no` اینجا نباشد: بزرگ‌نمایی را
+      می‌بندند و تخلف WCAG 1.4.4 هستند. جزئیات: docs/verification-log.md §۱۲.
+    -->
+    <title>دستیار هوشمند معلم</title>
+
+    <!--
+      🔴 الزام مستندات ایتا: این فایل هرگز Self-host نمی‌شود.
+      دلیل: به‌روزرسانی‌های امنیتی و ناهمخوانی نسخه با کلاینت.
+      منبع: developer.eitaa.com/docs/Develop/JsSDK/
+      باید در <head> و پیش از هر اسکریپت دیگری باشد.
+    -->
+    <script src="https://developer.eitaa.com/eitaa-web-app.js"></script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

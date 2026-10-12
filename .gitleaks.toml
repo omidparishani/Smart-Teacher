@@ -1,0 +1,27 @@
+# پیکربندی gitleaks — فاز ۱۲ گام ۱
+# اجرا: gitleaks detect --source . --config .gitleaks.toml
+title = "smart-teacher"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "مسیرها و الگوهای مجاز"
+paths = [
+  '''backend/src/test/resources/application-test\.yml''',
+  '''.*\.md''',
+]
+regexes = [
+  # کلیدهای ساختگی تست (الگوی آشکارا غیرواقعی)
+  '''MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=''',
+  '''ZmVkY2JhOTg3NjU0MzIxMGZlZGNiYTk4NzY1NDMyMTA=''',
+  # توکن رباتِ «بردار تست» — عمداً ساختگی و در docs/eitaa.md بخش ۷.۲
+  # مستندشده. تطبیق قاعده پیش‌فرض telegram-bot-token می‌دهد، چون از نظر
+  # شکل با یک توکن واقعی تفاوتی ندارد.
+  #
+  # ⚠️ بدون این سطر، اسکنر هر اجرا روی همان رشتهٔ مستندشده هشدار می‌داد و
+  # هشدارِ همیشه‌روشن یعنی هشداری که نادیده گرفته می‌شود. الگو دقیقاً همین
+  # رشته است (نه یک قاعدهٔ کلی)، پس یک توکن واقعیِ متفاوت همچنان گرفته
+  # می‌شود.
+  '''5768337691:AAGDAe6rjxu1cUgxK4BizYi--Utc3J9v5AU''',
+]

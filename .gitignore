@@ -1,0 +1,63 @@
+# ─── Java / Maven ───
+target/
+!.mvn/wrapper/maven-wrapper.jar
+*.class
+*.jar
+*.war
+*.ear
+hs_err_pid*
+replay_pid*
+
+# ─── IDE ───
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.project
+.classpath
+
+# ─── محیط و Secretها ───
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+!scripts/*.example
+
+# ─── Node / Frontend ───
+node_modules/
+dist/
+dist-ssr/
+*.local
+.vite/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ─── لاگ و Runtime ───
+logs/
+*.log
+*.log.gz
+storage/
+uploads/
+data/files/
+
+# ─── OS ───
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ─── بیلد و پوشش تست ───
+build/
+out/
+coverage/
+*.exec
+
+# ─── Playwright ───
+# ⚠️ فقط خروجی اجراست — نه خود آزمون‌ها. `e2e/` باید در مخزن باشد.
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/

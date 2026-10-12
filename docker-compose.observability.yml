@@ -1,0 +1,39 @@
+# ─────────────────────────────────────────────────────────────
+# Smart Teacher — Observability stack (Phase 12)
+#
+# Prometheus scrapes backend /actuator/prometheus (prod profile or
+# add prometheus to management.endpoints.web.exposure.include).
+#
+# Usage (backend must be reachable on smart-teacher-net):
+#   docker compose -f docker-compose.yml -f docker-compose.observability.yml up -d
+# ─────────────────────────────────────────────────────────────
+
+networks:
+  smart-teacher-net:
+    external: true
+    name: smart-teacher_smart-teacher-net
+
+services:
+  prometheus:
+    image: prom/prometheus:v3.2.1
+    container_name: smart-teacher-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./docker/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    networks:
+      - smart-teacher-net
+
+  grafana:
+    image: grafana/grafana:11.5.2
+    container_name: smart-teacher-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    ports:
+      - "3001:3000"
+    networks:
+      - smart-teacher-net

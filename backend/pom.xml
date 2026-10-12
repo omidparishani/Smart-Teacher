@@ -1,0 +1,333 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>4.1.1</version>
+    <relativePath/>
+  </parent>
+
+  <groupId>ir.omid</groupId>
+  <artifactId>smart-teacher-backend</artifactId>
+  <version>1.0.0-SNAPSHOT</version>
+  <name>Smart Teacher Backend</name>
+  <description>دستیار هوشمند معلم — بک‌اند (Modular Monolith)</description>
+
+  <properties>
+    <java.version>25</java.version>
+    <maven.compiler.release>25</maven.compiler.release>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+    <spring-modulith.version>2.1.1</spring-modulith.version>
+    <springdoc.version>3.1.1</springdoc.version>
+    <jjwt.version>0.13.0</jjwt.version>
+    <archunit.version>1.5.1</archunit.version>
+    <testcontainers.version>1.21.4</testcontainers.version>
+    <mapstruct.version>1.6.3</mapstruct.version>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.springframework.modulith</groupId>
+        <artifactId>spring-modulith-bom</artifactId>
+        <version>${spring-modulith.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+
+    <!-- ─────────── وب و اعتبارسنجی ─────────── -->
+    <!--
+      ⚠️ توجه: در Spring Boot 4 استارتر وب به «spring-boot-starter-webmvc» تغییر نام یافته است.
+      اگر بیلد گفت «artifact not found»، این یک خط را به «spring-boot-starter-web» تغییر دهید.
+      در docs/verification-log.md بخش ۳ به‌عنوان ⚠️ نیازمند تأیید ثبت شده است.
+    -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-validation</artifactId>
+    </dependency>
+
+    <!-- ─────────── داده ─────────── -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-data-jpa</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!--
+      ⚠️ توجه (Spring Boot 4): «spring-boot-starter-flyway» فقط
+      پیکربندی خودکار Flyway را می‌آورد، نه خود Flyway را. به همین
+      دلیل ماژول دیتابیس صریحاً می‌آید.
+
+      ⚠️ و مهم‌تر: در Boot 4 کلاس FlywayAutoConfiguration از
+      spring-boot-autoconfigure به ماژول جداگانه‌ی spring-boot-flyway
+      منتقل شده است. اگر فقط flyway-core را اعلام کنید (مثل نسخه‌ی
+      قبلی این فایل)، هیچ خطای بیلدی نمی‌گیرید — Flyway بی‌صدا هرگز
+      اجرا نمی‌شود و اولین نشانه‌اش شکست اعتبارسنجی اسکیما هنگام بالا
+      آمدن کانتکست است: «Schema validation: missing table [...]».
+      این با شکست واقعی تست کشف شد، نه با حدس — ثبت‌شده در
+      docs/verification-log.md بخش ۹.
+    -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-flyway</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
+    </dependency>
+
+    <!-- ─────────── امنیت ─────────── -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
+    </dependency>
+
+    <!--
+      Argon2id برای هش رمز ادمین (docs/security.md بخش ۵).
+      Argon2PasswordEncoder به BouncyCastle وابسته است؛ بدون این
+      وابستگی، ورود ادمین در زمان اجرا با NoClassDefFoundError می‌شکند.
+    -->
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk18on</artifactId>
+      <version>1.81</version>
+    </dependency>
+
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-api</artifactId>
+      <version>${jjwt.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-impl</artifactId>
+      <version>${jjwt.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.jsonwebtoken</groupId>
+      <artifactId>jjwt-jackson</artifactId>
+      <version>${jjwt.version}</version>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- ─────────── Modular Monolith ─────────── -->
+    <dependency>
+      <groupId>org.springframework.modulith</groupId>
+      <artifactId>spring-modulith-starter-jpa</artifactId>
+    </dependency>
+
+    <!-- ─────────── Observability ─────────── -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <!-- ─────────── مستندسازی API ─────────── -->
+    <dependency>
+      <groupId>org.springdoc</groupId>
+      <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+      <version>${springdoc.version}</version>
+    </dependency>
+
+    <!-- ─────────── نگاشت DTO ─────────── -->
+    <!--
+      MapStruct در فاز ۳ با نخستین Mapper اضافه شد (docs/development.md بخش ۱۴ گام ۵).
+
+      ⚠️ نسخه باید دقیقاً با mapstruct-processor یکی باشد. اگر فرق کنند،
+      پردازشگر کد نسل بعدی تولید می‌کند که با runtime نمی‌خواند و خطا
+      در زمان اجرا ظاهر می‌شود، نه در بیلد — پس هر دو از ${mapstruct.version}
+      می‌خوانند و دستی تایپ نمی‌شوند.
+    -->
+    <dependency>
+      <groupId>org.mapstruct</groupId>
+      <artifactId>mapstruct</artifactId>
+      <version>${mapstruct.version}</version>
+    </dependency>
+
+    <!-- استخراج صفحه از PDF — فاز ۶ گام ۲ (بدون حدس API ابری) -->
+    <dependency>
+      <groupId>org.apache.pdfbox</groupId>
+      <artifactId>pdfbox</artifactId>
+      <version>3.0.5</version>
+    </dependency>
+
+    <!-- خروجی Excel گزارش‌ها — فاز ۱۱ -->
+    <dependency>
+      <groupId>org.apache.poi</groupId>
+      <artifactId>poi-ooxml</artifactId>
+      <version>5.4.1</version>
+    </dependency>
+
+    <!-- TOTP برای 2FA سوپرادمین — فاز ۱۲ -->
+    <dependency>
+      <groupId>com.warrenstrange</groupId>
+      <artifactId>googleauth</artifactId>
+      <version>1.5.0</version>
+    </dependency>
+
+    <!--
+      ─────────── در فازهای بعدی افزوده می‌شوند ───────────
+
+      Bucket4j برای Rate Limiting (فاز ۴):
+        <dependency>
+          <groupId>com.bucket4j</groupId>
+          <artifactId>bucket4j_jdk17-core</artifactId>
+        </dependency>
+    -->
+
+    <!-- ═══════════════════ تست ═══════════════════ -->
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-webmvc-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.modulith</groupId>
+      <artifactId>spring-modulith-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>com.tngtech.archunit</groupId>
+      <artifactId>archunit-junit5</artifactId>
+      <version>${archunit.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>postgresql</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-testcontainers</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+
+  <build>
+    <finalName>smart-teacher-backend</finalName>
+
+    <plugins>
+
+      <!--
+        Toolchain: بیلد را مستقل از JAVA_HOME سیستم به JDK 25 گره می‌زند.
+        پیش‌نیاز: فایل ~/.m2/toolchains.xml — راهنما در docs/development.md بخش ۲
+      -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-toolchains-plugin</artifactId>
+        <version>3.2.0</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>toolchain</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <toolchains>
+            <jdk>
+              <version>25</version>
+            </jdk>
+          </toolchains>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <release>25</release>
+          <annotationProcessorPaths>
+            <!--
+              ⚠️ افزودن MapStruct به این فهرست اجباری است، نه سلیقه‌ای.
+              اگر فقط <dependency> اضافه شود و اینجا نیاید، Maven کد
+              تولیدشده را نمی‌سازد و خطا «cannot find symbol
+              ...MapperImpl» در بیلد ظاهر می‌شود.
+            -->
+            <path>
+              <groupId>org.mapstruct</groupId>
+              <artifactId>mapstruct-processor</artifactId>
+              <version>${mapstruct.version}</version>
+            </path>
+          </annotationProcessorPaths>
+          <compilerArgs>
+            <arg>-parameters</arg>
+            <arg>-Xlint:all,-serial,-processing</arg>
+          </compilerArgs>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <excludes>
+            <exclude>
+              <groupId>org.springframework.boot</groupId>
+              <artifactId>spring-boot-configuration-processor</artifactId>
+            </exclude>
+          </excludes>
+        </configuration>
+      </plugin>
+
+      <!--
+        توجه: کلیدهای تست در src/test/resources/application-test.yml قرار دارند
+        و «فقط تستی» هستند (در مخزن بودنشان بی‌خطر است چون هیچ داده واقعی
+        رمزنگاری‌شده‌ای با آن‌ها محافظت نمی‌شود).
+        هیچ Secret واقعی در pom یا resources پروژه نیست.
+      -->
+
+    </plugins>
+  </build>
+
+</project>

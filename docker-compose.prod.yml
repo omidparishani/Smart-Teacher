@@ -1,0 +1,117 @@
+# ─────────────────────────────────────────────────────────────
+# Smart Teacher — Production Docker Compose
+# بدون پورت باز دیتابیس یا ردیس به بیرون؛ تمامی ارتباطات از طریق Nginx Reverse Proxy
+# ─────────────────────────────────────────────────────────────
+
+networks:
+  smart-teacher-prod-net:
+    driver: bridge
+
+volumes:
+  pgdata-prod:
+  redisdata-prod:
+
+services:
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: st-prod-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-smart_teacher}
+      POSTGRES_USER: ${DB_USERNAME:-smart_teacher}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    # هیچ پورتی به هاست بیرونی مپ نمی‌شود
+    volumes:
+      - pgdata-prod:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-smart_teacher} -d ${DB_NAME:-smart_teacher}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - smart-teacher-prod-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: st-prod-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
+    # هیچ پورتی به هاست بیرونی مپ نمی‌شود
+    volumes:
+      - redisdata-prod:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - smart-teacher-prod-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: st-prod-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      APP_STORAGE_PROVIDER: local
+      APP_STORAGE_PATH: /app/storage
+      APP_REDIS_ENABLED: "true"
+      SPRING_DATA_REDIS_HOST: redis
+      SPRING_DATA_REDIS_PORT: 6379
+      SPRING_DATA_REDIS_PASSWORD: ${REDIS_PASSWORD}
+      DB_URL: jdbc:postgresql://postgres:5432/${DB_NAME:-smart_teacher}
+      DB_USERNAME: ${DB_USERNAME:-smart_teacher}
+      DB_PASSWORD: ${DB_PASSWORD}
+      ENCRYPTION_MASTER_KEY: ${ENCRYPTION_MASTER_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+      APP_EITAA_BOT_TOKEN: ${APP_EITAA_BOT_TOKEN}
+      APP_EITAA_APP_TOKEN: ${APP_EITAA_APP_TOKEN}
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS}
+    volumes:
+      - ./storage:/app/storage
+    networks:
+      - smart-teacher-prod-net
+
+  miniapp:
+    build:
+      context: ./miniapp
+      dockerfile: Dockerfile
+    container_name: st-prod-miniapp
+    restart: unless-stopped
+    networks:
+      - smart-teacher-prod-net
+
+  admin-panel:
+    build:
+      context: ./admin-panel
+      dockerfile: Dockerfile
+    container_name: st-prod-admin
+    restart: unless-stopped
+    networks:
+      - smart-teacher-prod-net
+
+  nginx:
+    image: nginx:alpine
+    container_name: st-prod-nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+      - miniapp
+      - admin-panel
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/prod.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - smart-teacher-prod-net

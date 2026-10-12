@@ -1,0 +1,179 @@
+# ═══════════════════════════════════════════════════════════
+#  پیکربندی مشترک — دستیار هوشمند معلم
+#  هیچ Secret واقعی اینجا نیست. مقادیر از متغیر محیطی می‌آیند.
+# ═══════════════════════════════════════════════════════════
+
+spring:
+  application:
+    name: smart-teacher
+  profiles:
+    default: dev
+
+  # فایل .env به‌صورت Properties خوانده می‌شود (کلید=مقدار).
+  # optional یعنی نبودش خطا نیست — در Production متغیرها از محیط می‌آیند.
+  config:
+    import:
+      - "optional:file:./.env[.properties]"
+      - "optional:file:../.env[.properties]"
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      pool-name: smart-teacher-pool
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      max-lifetime: 1800000
+
+  jpa:
+    # ⚠️ هرگز به update تغییر ندهید — تغییر Schema فقط با Flyway
+    hibernate:
+      ddl-auto: validate
+    # ✅ خاموش — ضد LazyInitializationException در Controller
+    open-in-view: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+        format_sql: false
+
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: false
+    validate-on-migrate: true
+
+  # Virtual Threads برای همه درخواست‌ها (JDK 25)
+  threads:
+    virtual:
+      enabled: true
+
+  jackson:
+    default-property-inclusion: non_null
+    # ⚠️ در Jackson 3 (که Boot 4 می‌آورد) ویژگی‌های تاریخ از
+    # SerializationFeature جدا شده‌اند و به DateTimeFeature رفته‌اند.
+    # کلید قدیمی spring.jackson.serialization.write-dates-as-timestamps
+    # دیگر بایند نمی‌شود و بالا آمدن کانتکست را با
+    # «No enum constant SerializationFeature.write-dates-as-timestamps»
+    # می‌شکند — نه با یک هشدار. مسیر درست همان datatype.datetime است.
+    datatype:
+      datetime:
+        write-dates-as-timestamps: false
+    serialization:
+      fail-on-empty-beans: false
+    deserialization:
+      fail-on-unknown-properties: false
+    time-zone: UTC
+
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 25MB
+
+server:
+  port: 8080
+  shutdown: graceful
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+  # ✅ هیچ‌گاه جزئیات خطا به بیرون نرود
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+    include-exception: false
+  compression:
+    enabled: true
+
+# ─── امنیت ───
+security:
+  encryption:
+    # ۳۲ بایت Base64 — تولید با scripts/generate-keys.sh
+    master-key: ${ENCRYPTION_MASTER_KEY}
+  jwt:
+    # حداقل ۳۲ بایت تصادفی Base64
+    secret: ${JWT_SECRET}
+    issuer: smart-teacher
+    audience: smart-teacher-api
+    access-token-ttl: 15m
+    refresh-token-ttl: 30d
+    clock-skew: 30s
+
+# ─── حالت Mock — در dev روشن، در prod هرگز ───
+app:
+  # 🔴 CORS — پیش‌فرض خالی، یعنی هیچ مبدأیی مجاز نیست (Fail-Closed).
+  #
+  # دلیل وجودش: Mini App در WebView ایتا از مبدأیی غیر از API اجرا
+  # می‌شود. بدون پاسخ درست به preflight، مرورگر تماس را هرگز نمی‌فرستد
+  # و خطا هم هیچ ردی در لاگ سرور نمی‌گذارد.
+  #
+  # ⚠️ هر استقرار باید مبدأهایش را صریحاً اینجا بگذارد. مقدار پیش‌فرض
+  # عمداً خالی است تا فراموشی، به یک درِ باز تبدیل نشود.
+  cors:
+    allowed-origins: []
+  mock:
+    eitaa: false
+    ai: false
+    payment: false
+  storage:
+    provider: ${APP_STORAGE_PROVIDER:LOCAL}
+    local:
+      # ریشه ذخیره‌سازی فایل‌های مستأجر — LocalFileStorage
+      base-path: ${APP_STORAGE_PATH:./data/files}
+  redis:
+    # وقتی true، RedisRateLimiter؛ پیش‌فرض حافظه‌ای (بدون Redis زنده)
+    enabled: ${APP_REDIS_ENABLED:false}
+  security:
+    totp:
+      enabled: true
+      issuer: SmartTeacher
+  # محدودیت نرخ ورود ادمین (فاز ۱۲ — حافظه‌ای یا Redis)
+  rate-limit:
+    login:
+      enabled: true
+      max-requests: 10
+      window: 1m
+  billing:
+    expiry-job-delay: 60000
+    expiry-warning-job-delay: 3600000
+  cache:
+    prompt-resolver-ttl: 60s
+    entitlement-ttl: 30s
+  resilience:
+    circuit-breaker:
+      failure-threshold: 5
+      open-duration: 30s
+
+# ─── Observability ───
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
+  info:
+    # ⚠️ هیچ env/java/os لو نده — info فقط باید بی‌خطر باشد
+    env:
+      enabled: false
+    java:
+      enabled: false
+    os:
+      enabled: false
+    build:
+      enabled: true
+    git:
+      enabled: false
+
+# ─── مستندسازی API ───
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html

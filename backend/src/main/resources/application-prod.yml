@@ -1,0 +1,95 @@
+# ═══════════════════════════════════════════════════════════
+#  پروفایل Production
+#  ⚠️ اصل حاکم: هیچ مقدار پیش‌فرضی وجود ندارد.
+#  اگر متغیر محیطی نباشد، برنامه باید fail کند — نه اینکه با
+#  مقدار پیش‌فرض ناامن بالا بیاید.
+# ═══════════════════════════════════════════════════════════
+
+spring:
+  datasource:
+    # بدون مقدار پیش‌فرض عمدی — در نبود متغیر، راه‌اندازی شکست می‌خورد
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    hikari:
+      maximum-pool-size: 25
+      minimum-idle: 5
+  jpa:
+    show-sql: false
+  flyway:
+    # در Production هرگونه تغییر غیرمنتظره Schema باید متوقف کند
+    clean-disabled: true
+
+security:
+  encryption:
+    master-key: ${ENCRYPTION_MASTER_KEY}
+  jwt:
+    secret: ${JWT_SECRET}
+
+app:
+  mock:
+    eitaa: false
+    ai: false
+    payment: false
+  eitaa:
+    # 🔴 این دو خط در Production بود و نبودشان یک نقص بی‌صدا بود.
+    #
+    # `application.yml` کلید `app.eitaa.*` را تعریف نمی‌کند و بلوک
+    # `app.eitaa` فقط در `application-dev.yml` بود. نتیجه: در Production،
+    # نام کوتاهی که **سه سند** آموزش می‌دهند (`docs/eitaa-setup.md`،
+    # `docs/development.md`، `.env.example` → `EITAA_BOT_TOKEN`) به هیچ
+    # کلیدی نمی‌بست و بی‌صدا نادیده گرفته می‌شد.
+    #
+    # ⚠️ چرا این خطرناک بود: `EitaaYarBotAdapter` در نبود توکن فقط
+    # `log.warn` می‌دهد و `EitaaProperties` هیچ اعتبارسنجی راه‌اندازی
+    # ندارد. پس استقرار **سالم بالا می‌آمد** (`/actuator/health` → UP،
+    # چون این مسیر به ایتا وابسته نیست) و کاربر فقط موقع اولین ارسال به
+    # گروه/کانال خطا می‌دید — با علتی که از همان ابتدا معلوم بود.
+    #
+    # فرم دو نامی عمدی است: `APP_EITAA_BOT_TOKEN` صورت canonical و
+    # profile-agnostic است (relaxed binding، بدون نیاز به هیچ yml)، و
+    # نام کوتاه برای سازگاری با `.env`های موجود نگه داشته شده.
+    #
+    # ⚠️ پیش‌فرض خالی است، نه یک مقدار — پس اصل «هیچ مقدار پیش‌فرضی» در
+    # این پروفایل نقض نمی‌شود: نبودِ هر دو متغیر یعنی توکن تنظیم‌نشده،
+    # دقیقاً مثل قبل.
+    bot-token: ${APP_EITAA_BOT_TOKEN:${EITAA_BOT_TOKEN:}}
+    app-token: ${APP_EITAA_APP_TOKEN:${EITAA_APP_TOKEN:}}
+
+server:
+  forward-headers-strategy: native
+
+# ─── Swagger در Production بسته است (خطر نشت ساختار داخلی) ───
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+# ─── Actuator: فقط آنچه لازم است، و آن هم فقط روی شبکه داخلی ───
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    env:
+      enabled: false        # ⚠️ خطر نشت Secret
+    configprops:
+      enabled: false        # ⚠️ خطر نشت Secret
+    health:
+      show-details: never
+  info:
+    env:
+      enabled: false
+    java:
+      enabled: false
+    os:
+      enabled: false
+    git:
+      enabled: false
+
+logging:
+  level:
+    root: WARN
+    ir.omid.smartteacher: INFO

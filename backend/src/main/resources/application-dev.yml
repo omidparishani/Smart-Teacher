@@ -1,0 +1,83 @@
+# ═══════════════════════════════════════════════════════════
+#  پروفایل توسعه محلی
+#  ⚠️ هیچ رازی در این فایل نیست — نه کلید، نه توکن.
+#  رمزها به‌جز یک رمز seed توسعه‌ای (پایین، قابل‌بازنویسی از `.env`)
+#  همه از `.env` می‌آیند که در `.gitignore` است.
+#
+#  مقادیر پیش‌فرض اینجا «فقط توسعه‌ای» هستند و در Production هرگز
+#  استفاده نمی‌شوند (application-prod.yml هیچ پیش‌فرضی ندارد و
+#  `DevBootstrap` با `@Profile("dev")` محدود شده است).
+# ═══════════════════════════════════════════════════════════
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/smart_teacher}
+    username: ${DB_USERNAME:smart_teacher}
+    password: ${DB_PASSWORD:smart_teacher}
+  jpa:
+    show-sql: true
+
+# ─── هیچ رازی در این فایل نیست ───
+#
+# 🔴 اینجا عمداً هیچ کلید و توکنی نیست. `application.yml` خودش `.env` را
+# import می‌کند و مقادیر امنیتی را از `${ENCRYPTION_MASTER_KEY}` و
+# `${JWT_SECRET}` می‌خواند؛ کلیدهای واقعی در `.env` هستند (gitignore شده).
+#
+# نسخه پیشین این فایل یک کلید رمزنگاری Base64 واقعی و یک توکن ربات ایتا را
+# به‌عنوان پیش‌فرض داشت — یعنی هر دو راز در مخزن گیت. توکنِ داخل مخزن یعنی
+# هر کسی که مخزن را بخواند می‌تواند به‌جای ما پیام بفرستد.
+#
+# ⚠️ در نبود `ENCRYPTION_MASTER_KEY` و `JWT_SECRET` برنامه بالا نمی‌آید
+# (fail-closed) — این دو با `${...}` بدون پیش‌فرض خوانده می‌شوند.
+#
+# 🔴 ولی دقیقاً همین را دربارهٔ **توکن ایتا** نگویید: آن یکی برنامه را
+# متوقف نمی‌کند. `EitaaYarBotAdapter` فقط `log.warn` می‌دهد و
+# `LocalHmacVerifier` در **زمان درخواست** با پیام روشن
+# «APP_EITAA_BOT_TOKEN را مقدار بدهید» متوقف می‌کند. یعنی برنامه بالا
+# می‌آید و تازه موقع اولین ارسال معلوم می‌شود. این تفاوت عمداً مستند
+# می‌شود تا کسی روی «بالا نمی‌آید» حساب نکند.
+
+app:
+  cors:
+    # ⚠️ فقط توسعه. هر دو شکل `localhost` و `127.0.0.1` لازم است: مرورگر
+    # آن‌ها را دو مبدأ متفاوت می‌بیند و Playwright با `127.0.0.1` بالا
+    # می‌آید در حالی که کاربر معمولاً `localhost` را باز می‌کند.
+    allowed-origins:
+      - http://localhost:5173
+      - http://127.0.0.1:5173
+      - http://localhost:5174
+      - http://127.0.0.1:5174
+  mock:
+    eitaa: false
+    ai: false
+    payment: true
+  eitaa:
+    # 🔴 توکن‌ها فقط از محیط می‌آیند — هیچ مقدار پیش‌فرضی اینجا نیست.
+    #
+    # این دو خط باید بمانند: `application.yml` کلید `app.eitaa.*` را تعریف
+    # نمی‌کند و نام متغیر در `.env` هم `EITAA_BOT_TOKEN` است، نه
+    # `app.eitaa.bot-token`. پس این‌ها نگاشت نام‌اند، نه مقدار.
+    #
+    # ⚠️ پیش‌فرض خالی (نه مقدار ساختگی): `EitaaProperties` عمداً پیش‌فرض
+    # ندارد، چون توکنِ داخل مخزن یعنی هر کسی می‌تواند به‌جای ما پیام بفرستد.
+    # `hasBotToken()` روی رشته خالی `false` می‌دهد و `LocalHmacVerifier` در
+    # زمان درخواست با پیام روشن «APP_EITAA_BOT_TOKEN را مقدار بدهید»
+    # متوقف می‌کند — یعنی خرابی خودش را توضیح می‌دهد. (⚠️ ولی در
+    # راه‌اندازی متوقف نمی‌کند — بالای همین فایل را ببینید.)
+    bot-token: ${APP_EITAA_BOT_TOKEN:${EITAA_BOT_TOKEN:}}
+    app-token: ${APP_EITAA_APP_TOKEN:${EITAA_APP_TOKEN:}}
+  dev:
+    seed: true
+    admin-username: superadmin
+    # ⚠️ این یک «مقدار پیش‌فرض توسعه» است، نه یک راز: با `@Profile("dev")`
+    # محدود شده و `application-prod.yml` هرگز seed را اجرا نمی‌کند. اگر
+    # می‌خواهید عوضش کنید، `APP_DEV_ADMIN_PASSWORD` را در `.env` بگذارید —
+    # بدون تغییر کد.
+    admin-password: ${APP_DEV_ADMIN_PASSWORD:ChangeMe-Admin-1!}
+
+logging:
+  level:
+    ir.omid.smartteacher: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+    org.springframework.modulith: INFO

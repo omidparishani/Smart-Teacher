@@ -1,0 +1,134 @@
+@import 'tailwindcss';
+
+/*
+ * ⚠️ حالت تاریک بر پایه صفت `data-theme` است — همان چیزی که
+ * `docs/mini-app.md` بخش ۹ گفته — و نه فقط `prefers-color-scheme`،
+ * چون در ایتا منبع حقیقت `eitaa.colorScheme()` است. هر دو پشتیبانی
+ * می‌شوند: اگر کاربر انتخاب کرده باشد، صفت می‌آید و بر همه‌چیز مقدم است.
+ */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
+/*
+ * پالت — دقیقاً مقادیر `docs/mini-app.md` بخش ۹.
+ *
+ * ⚠️ سند مقادیر را با نام‌های `--primary`, `--background` و… نوشته که
+ * قرارداد shadcn است. Tailwind 4 برای ساختن کلاس‌هایی مثل `bg-primary`
+ * پیشوند `--color-` را لازم دارد، پس همان مقادیر با قرارداد Tailwind
+ * نوشته شده‌اند. رنگ‌ها یکی هستند؛ فقط نام‌گذاری مطابق ابزار است.
+ */
+@theme {
+  --font-sans: 'Vazirmatn Variable', ui-sans-serif, system-ui, sans-serif;
+
+  /* آبی آموزشی */
+  --color-primary: hsl(221 83% 53%);
+  /* سبز — نمره قبولی، وضعیت فعال */
+  --color-success: hsl(142 76% 36%);
+  /* نارنجی — هشدار مصرف */
+  --color-warning: hsl(38 92% 50%);
+  /* قرمز — خطا، سقف پر */
+  --color-danger: hsl(0 84% 60%);
+  /*
+   * 🔴 نسخه «متنِ» قرمز — یک رنگ جدا، و نه یک سلیقه.
+   *
+   * دلیل وجودش اندازه‌گیری است: `--color-danger` روی زمینه روشن نسبت
+   * کنتراست ~۳.۸:۱ می‌دهد، زیر آستانه ۴.۵:۱ سطح AA. یک رنگ پرکننده
+   * می‌تواند روشن باشد (کنتراستش با متنِ رویش سنجیده می‌شود)، ولی وقتی
+   * همین رنگ خودش رنگِ متن شود، خواندنش برای کم‌بیناها سخت است.
+   *
+   * این نقص با آزمون دسترس‌پذیری در `e2e/a11y.spec.ts` پیدا شد.
+   * مقدار زیر ~۴.۸:۱ روی سفید می‌دهد.
+   */
+  --color-danger-strong: hsl(0 72% 51%);
+  /* فیروزه‌ای — اطلاعات */
+  --color-info: hsl(199 89% 48%);
+
+  --color-background: hsl(0 0% 100%);
+  --color-foreground: hsl(222 47% 11%);
+  --color-card: hsl(0 0% 100%);
+  --color-muted: hsl(210 40% 96%);
+  /* ⚠️ افزوده ما: سند متن فرعی را تعریف نکرده بود، و بدون آن متن‌های
+     کم‌اهمیت با رنگ متن اصلی نوشته می‌شدند و سلسله‌مراتب گم می‌شد. */
+  --color-muted-foreground: hsl(215 16% 47%);
+  --color-border: hsl(214 32% 91%);
+
+  /* گوشه‌ها — سند: rounded-xl (۱۲px) */
+  --radius-xl: 12px;
+}
+
+/*
+ * حالت تاریک — دو مسیر، هر دو از سند بخش ۹.
+ *
+ * ⚠️ اول `prefers-color-scheme` (با نگهبان تا انتخاب صریح روشن را
+ * نشکند)، بعد صفت صریح. ترتیب مهم است: بلوک صفتی همیشه آخر می‌آید تا
+ * انتخاب کاربر بر تنظیم سیستم مقدم باشد.
+ */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --color-background: hsl(222 47% 11%);
+    --color-foreground: hsl(210 40% 98%);
+    --color-card: hsl(217 33% 16%);
+    --color-muted: hsl(217 33% 17%);
+    --color-muted-foreground: hsl(215 20% 65%);
+    --color-border: hsl(217 33% 22%);
+    /* ⚠️ در حالت تاریک جهت برمی‌گردد: زمینه تیره است، پس متن باید
+       روشن‌تر شود. همین رنگِ روشن روی زمینه تیره ~۵.۳:۱ می‌دهد. */
+    --color-danger-strong: hsl(0 84% 60%);
+    color-scheme: dark;
+  }
+}
+
+[data-theme='dark'] {
+  --color-background: hsl(222 47% 11%);
+  --color-foreground: hsl(210 40% 98%);
+  --color-card: hsl(217 33% 16%);
+  --color-muted: hsl(217 33% 17%);
+  --color-muted-foreground: hsl(215 20% 65%);
+  --color-border: hsl(217 33% 22%);
+  /* ⚠️ همان دلیل بلوک بالا — نسخه متن در حالت تاریک روشن‌تر است. */
+  --color-danger-strong: hsl(0 84% 60%);
+  color-scheme: dark;
+}
+
+@layer base {
+  html {
+    /* ⚠️ حداقل ناحیه لمس و اندازه پایه فونت — سند بخش ۹ */
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    /*
+     * ⚠️ پس‌زمینه صریح — نه پیش‌فرض. در WebView ایتا ممکن است پس‌زمینه
+     * شفاف باشد و متن روی زمینه ناشناخته بیفتد.
+     */
+    @apply bg-background text-foreground antialiased;
+    margin: 0;
+    font-family: var(--font-sans);
+    /* ⚠️ جلوگیری از پرش چیدمان هنگام آمدن نوار پایین */
+    overscroll-behavior-y: none;
+  }
+
+  /* ⚠️ ناحیه لمس حداقل ۴۴×۴۴ — سند بخش ۹ */
+  button,
+  a,
+  [role='button'] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  /* ⚠️ حالت فوکوس قابل‌دیدن — الزام دسترس‌پذیری */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  /* ⚠️ احترام به تنظیم کاهش حرکت */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}

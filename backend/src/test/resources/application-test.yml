@@ -1,0 +1,103 @@
+# ═══════════════════════════════════════════════════════════
+#  پیکربندی تست — دستیار هوشمند معلم
+#
+#  ⚠️ کلیدهای این فایل «تست» هستند، نه راز واقعی. با آن‌ها هیچ داده
+#  واقعی مشتری رمزنگاری نمی‌شود. برای همین بی‌خطر است که در مخزن باشند.
+#  اگر روزی کسی این دو رشته را در production استفاده کند، یعنی فاجعه —
+#  پس هر دو با الگوی آشکارا ساختگی («0123456789abcdef...») نوشته
+#  شده‌اند تا اشتباه‌گرفتنشان با کلید واقعی تقریباً ناممکن باشد.
+#
+#  ── چرا مقادیر تست بر .env محلی اولویت دارند ──
+#  application.yml فایل .env را با spring.config.import وارد می‌کند.
+#  اما پیکربندی مخصوص پروفایل (همین فایل) اولویت بالاتری از سند
+#  application.yml و همه import‌هایش دارد. پس اگر روی ماشین توسعه‌دهنده
+#  .env واقعی وجود داشته باشد، کلیدهای واقعی به تست نشت نمی‌کنند.
+# ═══════════════════════════════════════════════════════════
+
+spring:
+
+  # ── دیتابیس ──
+  # مقادیر زیر عمداً «آدرس دروغ» هستند: فقط برای اینکه placeholderهای
+  # ${DB_URL} در application.yml حل شوند و کانتکست بالا بیاید.
+  # در تست‌های Testcontainers، @ServiceConnection همین‌ها را با آدرس
+  # کانتینر جایگزین می‌کند. اگر تستی بدون کانتینر اجرا شود، با خطای
+  # اتصال سریع شکست می‌خورد — بهتر از وصل‌شدن بی‌صدا به دیتابیس دیگر.
+  datasource:
+    url: jdbc:postgresql://localhost:5432/smart_teacher_test
+    username: smart_teacher_test
+    password: test-only
+
+  flyway:
+    # ⚠️ فهرست locations جایگزین می‌شود، نه ادغام — پس مسیر اصلی هم
+    # باید صریحاً بیاید. مسیر دوم فقط در تست روی classpath است و جدول
+    # کاوشگر جداسازی را می‌سازد (نگاه کنید به TenantIsolationTest).
+    locations: classpath:db/migration,classpath:db/test-migration
+
+  jpa:
+    hibernate:
+      # validate می‌ماند — همان مقدار production. اگر نگاشت موجودیت‌ها
+      # با Migration‌ها اختلاف داشته باشد، می‌خواهیم همین‌جا لو برود،
+      # نه در استقرار. توجه: جدول کاوشگر توسط Flyway تست ساخته می‌شود،
+      # پس این اعتبارسنجی روی آن هم کار می‌کند.
+      ddl-auto: validate
+
+# ─── امنیت (فقط تست) ───
+security:
+  encryption:
+    # Base64 از «0123456789abcdef0123456789abcdef» — ۳۲ بایت
+    master-key: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=
+  jwt:
+    # Base64 از «fedcba9876543210fedcba9876543210» — ۳۲ بایت
+    secret: ZmVkY2JhOTg3NjU0MzIxMGZlZGNiYTk4NzY1NDMyMTA=
+    issuer: smart-teacher
+    audience: smart-teacher-api
+    # در تست‌ها مقدار طولانی‌تر، تا تست انقضا شکننده نباشد
+    access-token-ttl: 15m
+    refresh-token-ttl: 30d
+    clock-skew: 30s
+
+# ─── حالت Mock + ذخیره‌سازی محلی تست ───
+app:
+  mock:
+    eitaa: true
+    ai: true
+    payment: true
+  eitaa:
+    scheduler:
+      # جاب خودکار در تست خاموش؛ تست فاز ۹ با TestPropertySource روشن می‌کند
+      enabled: false
+      fixed-delay-ms: 3600000
+  storage:
+    provider: LOCAL
+    local:
+      # زیر target — از کد منبع جداست و با clean پاک می‌شود
+      base-path: ./target/smart-teacher-test-files
+  redis:
+    enabled: false
+  security:
+    totp:
+      enabled: true
+      issuer: SmartTeacher-Test
+  # سقف بالاتر تا تست قفل حساب (۵ تلاش) با محدودیت نرخ تداخل نکند
+  rate-limit:
+    login:
+      enabled: true
+      max-requests: 100
+      window: 1m
+  ai:
+    circuit-breaker:
+      failure-threshold: 5
+      cooldown-ms: 30000
+
+# ─── Log کم‌نویزتر تا خروجی تست خوانا بماند ───
+logging:
+  level:
+    root: WARN
+    ir.omid.smartteacher: INFO
+    # ⚠️ کانال SECURITY هرگز خاموش نمی‌شود — همان‌جا است که رویدادهای
+    # امنیتی ثبت می‌شوند و در تست باید دیده شوند.
+    SECURITY: INFO
+    org.hibernate.SQL: WARN
+    org.flywaydb: WARN
+    org.testcontainers: WARN
+    com.github.dockerjava: WARN

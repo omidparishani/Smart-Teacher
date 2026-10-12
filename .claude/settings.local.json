@@ -1,0 +1,38 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Bash(java -version)",
+      "Bash(mvn -version)",
+      "Bash(npm -v)",
+      "Bash(docker --version)",
+      "WebFetch(domain:eitaayar.ir)",
+      "WebFetch(domain:developer.eitaa.com)",
+      "Bash(cd /tmp)",
+      "Bash(curl -sL -A \"Mozilla/5.0 \\(Windows NT 10.0; Win64; x64\\)\" -o eitaa_api.pdf \"https://eitaayar.ir/assets/download/API_eitaayar.ir.pdf\" -w \"HTTP:%{http_code} SIZE:%{size_download}\\\\n\")",
+      "WebSearch",
+      "Bash(python -c ' *)",
+      "Read(//c/Users/o.parishani/.m2/repository/org/springframework/boot/**)",
+      "Read(//c/Users/o.parishani/.m2/repository/org/springframework/boot//**)",
+      "Bash(cd:*)",
+      "Bash(npm:*)",
+      "Bash(npm.cmd:*)",
+      "Bash(npx:*)",
+      "Bash(mvn:*)",
+      "Bash(mvn.cmd:*)",
+      "Bash(git:*)",
+      "Bash(docker:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(node:*)",
+      "Bash(curl:*)",
+      "PowerShell(*)",
+      "PowerShell(mvn:*)",
+      "PowerShell(npm:*)",
+      "PowerShell(git:*)",
+      "PowerShell(docker:*)"
+    ]
+  }
+}

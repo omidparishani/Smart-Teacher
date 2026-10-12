@@ -1,0 +1,133 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (JDK 25 + Postgres)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: smart_teacher_ci
+          POSTGRES_USER: smart_teacher
+          POSTGRES_PASSWORD: ci-only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U smart_teacher -d smart_teacher_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
+      - name: Backend verify
+        working-directory: backend
+        env:
+          # تست‌ها عمدتاً Testcontainers می‌زنند؛ سرویس postgres بالا برای
+          # محیط‌هایی است که Docker-in-Docker محدود است — تصویر تست را
+          # همسان با سرویس نگه می‌داریم.
+          #
+          # ⚠️ نسخه باید همان نسخه Production باشد (docker-compose.yml هم
+          # postgres:17-alpine است). پیش‌تر ۱۶ بود و نتیجه‌اش این شد که CI
+          # روی یک major دیگر از چیزی که مستقر می‌شود سبز می‌ماند.
+          DB_URL: jdbc:postgresql://localhost:5432/smart_teacher_ci
+          DB_USERNAME: smart_teacher
+          DB_PASSWORD: ci-only
+        run: mvn -B verify "-Dtest.postgres.image=postgres:17-alpine"
+
+  miniapp:
+    name: Mini App build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: miniapp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: miniapp/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  admin-panel:
+    name: Admin panel build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: admin-panel
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: admin-panel/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  gitleaks:
+    name: Secret scan (optional)
+    runs-on: ubuntu-latest
+    # ⚠️ اگر باینری gitleaks در runner نباشد، job سبز می‌ماند (continue-on-error)
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Run gitleaks if available
+        run: |
+          if command -v gitleaks >/dev/null 2>&1; then
+            gitleaks detect --source . --config .gitleaks.toml --verbose
+          else
+            echo "gitleaks binary not found — skipping (optional Phase 12 step 1)"
+            # تلاش نصب سبک؛ شکست نصب هم CI را قرمز نمی‌کند
+            curl -sSfL https://github.com/gitleaks/gitleaks/releases/download/v8.21.2/gitleaks_8.21.2_linux_x64.tar.gz \
+              | tar -xz gitleaks || true
+            if [ -x ./gitleaks ]; then
+              ./gitleaks detect --source . --config .gitleaks.toml --verbose
+            fi
+          fi
+
+  owasp-dependency-check:
+    name: OWASP Dependency-Check (optional)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - name: OWASP dependency-check
+        working-directory: backend
+        run: |
+          mvn -B org.owasp:dependency-check-maven:12.1.0:check \
+            -DskipTests \
+            -DfailBuildOnCVSS=11 \
+            -Ddependency-check.skip=false \
+            || echo "OWASP dependency-check finished with warnings (continue-on-error)"
